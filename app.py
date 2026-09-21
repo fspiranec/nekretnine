@@ -38,7 +38,11 @@ class ApplicationState:
                 result = SyncService(session).run(scraper)
             self.sync_status = {
                 "running": False,
-                "message": f"Gotovo: {result.inserted} novih, {result.updated} osvježenih, {result.price_changes} promjena cijene.",
+                "message": (
+                    f"Gotovo: {result.inserted} novih, {result.updated} osvježenih, "
+                    f"{result.price_changes} promjena cijene, "
+                    f"{result.invalid_removed} neispravnih uklonjeno."
+                ),
             }
         except Exception as exc:  # Background boundary: retain useful status and log the traceback.
             logging.exception("Opereta refresh failed")

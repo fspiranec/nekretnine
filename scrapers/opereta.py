@@ -50,7 +50,14 @@ class OperetaScraper(BaseScraper):
             try:
                 response = self.http.get(link, timeout=self.timeout)
                 response.raise_for_status()
-                properties.append(self.parse_detail(response.text, response.url))
+                if not self._looks_like_property_detail(response.text):
+                    LOGGER.warning("Skipping non-listing Opereta page %s", response.url)
+                    continue
+                property_dto = self.parse_detail(response.text, response.url)
+                if not self._looks_like_house(response.text, property_dto.title):
+                    LOGGER.info("Skipping non-house Opereta listing %s", response.url)
+                    continue
+                properties.append(property_dto)
             except (requests.RequestException, ValueError) as exc:
                 LOGGER.warning("Skipping Opereta listing %s (%d/%d): %s", link, index, len(links), exc)
         return properties
@@ -163,7 +170,11 @@ class OperetaScraper(BaseScraper):
     def _is_property_url(url: str) -> bool:
         lowered = url.lower()
         path_parts = [part for part in urlparse(lowered).path.split("/") if part]
-        return len(path_parts) >= 2 and any(
+        excluded_segments = {
+            "property-management", "upravljanje-nekretninama", "property-valuation",
+            "procjena-nekretnina", "services", "usluge", "careers", "karijere",
+        }
+        return not excluded_segments.intersection(path_parts) and len(path_parts) >= 2 and any(
             part in lowered
             for part in ("/nekretnina/", "/nekretnine/", "/property/", "/properties/")
         )
@@ -179,10 +190,35 @@ class OperetaScraper(BaseScraper):
     def _is_property_link(self, url: str, anchor: Tag) -> bool:
         if urlparse(url).netloc != urlparse(self.base_url).netloc:
             return False
-        haystack = f"{url} {' '.join(anchor.get('class', []))}".lower()
-        return any(token in haystack for token in ("nekretnina", "/nekretnine/", "property", "oglas")) and not any(
-            token in haystack for token in ("page=", "/kategorija/", "vrsta=")
+        return self._is_property_url(url) and not any(
+            token in url.lower() for token in ("page=", "/kategorija/", "vrsta=")
         )
+
+    @classmethod
+    def _looks_like_property_detail(cls, html: str) -> bool:
+        """Reject service and navigation pages before they can enter the database."""
+        soup = BeautifulSoup(html, "html.parser")
+        data = cls._json_ld(soup)
+        if any(data.get(key) not in (None, "", {}) for key in ("offers", "sku", "productID")):
+            return True
+        text = soup.get_text(" ", strip=True)
+        has_identifier = bool(re.search(r"(?:šifra|id)(?:\s+oglasa)?\s*[:#]", text, re.IGNORECASE))
+        has_property_facts = bool(
+            re.search(r"(?:stambena površina|površina kuće|living area|land area|\bm²\b)", text, re.IGNORECASE)
+        )
+        has_price = "€" in text or bool(re.search(r"\bEUR\b", text, re.IGNORECASE))
+        return has_identifier and (has_property_facts or has_price)
+
+    @staticmethod
+    def _looks_like_house(html: str, title: str) -> bool:
+        """Keep the houses-only scope while tolerating listings with generic titles."""
+        soup = BeautifulSoup(html, "html.parser")
+        context = " ".join(
+            [title, *(element.get_text(" ", strip=True) for element in soup.select(".breadcrumb, .breadcrumbs, [class*='property-type']"))]
+        ).lower()
+        house = bool(re.search(r"\b(kuć[aeu]?|kuca|house|villa|vila)\b", context, re.IGNORECASE))
+        apartment = bool(re.search(r"\b(stan(?:ovi|a|u)?|apartment|flat)\b", context, re.IGNORECASE))
+        return house or not apartment
 
     @classmethod
     def parse_detail(cls, html: str, url: str) -> PropertyDTO:

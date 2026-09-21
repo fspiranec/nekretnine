@@ -46,6 +46,14 @@ Zadani Opereta URL koristi hrvatsku rutu
 postavku, automatski pokušava alternativne aktualne rute i, ako se navigacija portala
 promijeni, pokušava pronaći oglase kroz javni sitemap. Varijablu
 `OPERETA_HOUSES_URL` postavite samo ako želite ručno zadati drugu početnu stranicu.
+Scraper dodatno provjerava da je pronađena stranica stvarni oglas i odbacuje uslužne
+stranice poput `property-management` te oglase koji su jasno označeni kao stanovi.
+
+Pri sljedećem osvježavanju servis automatski uklanja stare retke koji nemaju ni cijenu,
+ni stambenu površinu, ni površinu zemljišta, pa ranije spremljena stranica
+`property-management` više neće ostati među rezultatima. Ako ipak želite potpuno čistu
+bazu, zaustavite aplikaciju, izbrišite `data/nekretnine.db`, ponovno pokrenite
+`python app.py` i kliknite **Osvježi Operetu**.
 
 ## Vercel
 
