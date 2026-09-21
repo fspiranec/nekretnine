@@ -27,11 +27,12 @@ class Config:
     database_url: str = field(default_factory=lambda: os.getenv("DATABASE_URL", _default_database_url()))
     secret_key: str = field(default_factory=lambda: os.getenv("SECRET_KEY", "change-this-key-in-production"))
     opereta_base_url: str = field(default_factory=lambda: os.getenv("OPERETA_BASE_URL", "https://www.opereta.hr"))
-    opereta_houses_url: str = field(
+    opereta_listings_url: str = field(
         default_factory=lambda: os.getenv(
-            "OPERETA_HOUSES_URL", "https://www.opereta.hr/hr/nekretnine?vrsta=kuce"
+            "OPERETA_LISTINGS_URL",
+            os.getenv("OPERETA_HOUSES_URL", "https://www.opereta.hr/nekretnine"),
         )
     )
     request_timeout: int = field(default_factory=lambda: int(os.getenv("SCRAPER_TIMEOUT", "20")))
-    scraper_max_pages: int = field(default_factory=lambda: int(os.getenv("SCRAPER_MAX_PAGES", "30")))
+    scraper_max_pages: int = field(default_factory=lambda: int(os.getenv("SCRAPER_MAX_PAGES", "100")))
     is_serverless: bool = field(default_factory=lambda: bool(os.getenv("VERCEL")))

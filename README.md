@@ -1,6 +1,6 @@
 # Nekretnine.hr
 
-Lokalna, responzivna tražilica hrvatskih nekretnina. Prva integracija prikuplja kuće s Operete, normalizira podatke u zajednički DTO te ih sprema u SQLite. Pretraživanje i filtriranje nakon sinkronizacije ne šalju zahtjeve portalima.
+Lokalna, responzivna tražilica hrvatskih nekretnina. Prva integracija prikuplja sve vrste oglasa s Operete, normalizira ih u zajednički DTO te ih sprema u SQLite. Pretraživanje i filtriranje nakon sinkronizacije ne šalju zahtjeve portalima.
 
 ## Zahtjevi
 
@@ -39,15 +39,16 @@ pregledniku otvorite <http://127.0.0.1:5000>. Za zaustavljanje aplikacije pritis
 `Ctrl+C`. Baza se automatski stvara u `data/nekretnine.db`. Klik **Osvježi Operetu**
 pokreće sinkronizaciju u pozadini; status je prikazan u zaglavlju. Postavke se mogu
 promijeniti varijablama `DATABASE_URL`, `SECRET_KEY`, `OPERETA_BASE_URL`,
-`OPERETA_HOUSES_URL`, `SCRAPER_TIMEOUT` i `SCRAPER_MAX_PAGES`.
+`OPERETA_LISTINGS_URL`, `SCRAPER_TIMEOUT` i `SCRAPER_MAX_PAGES`. Stari naziv
+`OPERETA_HOUSES_URL` i dalje se prihvaća radi kompatibilnosti.
 
-Zadani Opereta URL koristi hrvatsku rutu
-`https://www.opereta.hr/hr/nekretnine?vrsta=kuce`. Scraper šalje hrvatsku jezičnu
+Zadani Opereta URL koristi rutu `https://www.opereta.hr/nekretnine`. Scraper šalje hrvatsku jezičnu
 postavku, automatski pokušava alternativne aktualne rute i, ako se navigacija portala
 promijeni, pokušava pronaći oglase kroz javni sitemap. Varijablu
-`OPERETA_HOUSES_URL` postavite samo ako želite ručno zadati drugu početnu stranicu.
+`OPERETA_LISTINGS_URL` postavite samo ako želite ručno zadati drugu početnu stranicu.
 Scraper dodatno provjerava da je pronađena stranica stvarni oglas i odbacuje uslužne
-stranice poput `property-management` te oglase koji su jasno označeni kao stanovi.
+stranice poput `property-management`. Prolazi kroz kategorije i paginaciju te sprema
+stanove, kuće, zemljišta, poslovne prostore, nekretnine za odmor i ostale oglase.
 
 Pri sljedećem osvježavanju servis automatski uklanja stare retke koji nemaju ni cijenu,
 ni stambenu površinu, ni površinu zemljišta, pa ranije spremljena stranica

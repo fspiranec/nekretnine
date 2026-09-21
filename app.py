@@ -31,7 +31,7 @@ class ApplicationState:
         self.sync_status = {"running": True, "message": "Opereta sinkronizacija je u tijeku…"}
         try:
             scraper = OperetaScraper(
-                self.config.opereta_houses_url, self.config.opereta_base_url,
+                self.config.opereta_listings_url, self.config.opereta_base_url,
                 self.config.request_timeout, self.config.scraper_max_pages,
             )
             with self.database.session() as session:

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Nekretnine.hr — kuće na jednom mjestu</title>
+  <title>Nekretnine.hr — nekretnine na jednom mjestu</title>
   <meta name="description" content="Lokalna tražilica nekretnina s kartom Hrvatske.">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
@@ -33,7 +33,13 @@
           </div>
           <label class="form-label" for="propertyType">Vrsta nekretnine</label>
           <select class="form-select mb-4" id="propertyType" name="property_type">
-            <option value="">Sve vrste</option><option value="house">Kuća</option>
+            <option value="">Sve vrste</option>
+            <option value="apartment">Stan</option>
+            <option value="house">Kuća</option>
+            <option value="land">Zemljište</option>
+            <option value="commercial">Poslovni prostor</option>
+            <option value="vacation">Nekretnina za odmor</option>
+            <option value="other">Ostalo</option>
           </select>
           <fieldset><legend>Cijena (€)</legend><div class="row g-2 mb-4"><div class="col"><input class="form-control" name="price_min" type="number" min="0" placeholder="Od"></div><div class="col"><input class="form-control" name="price_max" type="number" min="0" placeholder="Do"></div></div></fieldset>
           <fieldset><legend>Stambena površina (m²)</legend><div class="row g-2 mb-4"><div class="col"><input class="form-control" name="living_min" type="number" min="0" placeholder="Od"></div><div class="col"><input class="form-control" name="living_max" type="number" min="0" placeholder="Do"></div></div></fieldset>
@@ -54,7 +60,7 @@
 
       <section class="col-12 col-lg-9 col-xl-10">
         <div class="hero-copy d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
-          <div><p class="eyebrow mb-1">Pregled ponude</p><h2 class="h3 mb-0">Kuće u Hrvatskoj</h2></div>
+          <div><p class="eyebrow mb-1">Pregled ponude</p><h2 class="h3 mb-0">Nekretnine u Hrvatskoj</h2></div>
           <p class="mb-1 text-secondary"><strong id="resultCount">0</strong> oglasa</p>
         </div>
         <div class="map-shell">

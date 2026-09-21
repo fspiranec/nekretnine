@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 from app import create_app
 from config import Config
@@ -75,9 +76,14 @@ class ApplicationTests(unittest.TestCase):
     def test_opereta_recognizes_current_croatian_property_urls(self) -> None:
         self.assertTrue(
             OperetaScraper._is_property_url(
-                "https://www.opereta.hr/hr/nekretnine/kuca-s-pogledom"
+                "https://www.opereta.hr/nekretnina/kuca/189627-prodaja-kuca-zadar"
             )
         )
+
+    def test_opereta_rejects_category_as_property_detail(self) -> None:
+        self.assertFalse(OperetaScraper._is_property_url(
+            "https://www.opereta.hr/nekretnine/prodaja/stan"
+        ))
 
     def test_opereta_rejects_property_management_page(self) -> None:
         url = "https://www.opereta.hr/en/property-management"
@@ -86,10 +92,53 @@ class ApplicationTests(unittest.TestCase):
         self.assertFalse(OperetaScraper._is_property_url(url))
         self.assertFalse(OperetaScraper._looks_like_property_detail(html))
 
-    def test_opereta_rejects_apartment_listing_for_house_sync(self) -> None:
-        html = "<html><body><nav class='breadcrumb'>Properties / Apartments</nav></body></html>"
+    def test_opereta_parses_apartment_and_land_types(self) -> None:
+        apartment = OperetaScraper.parse_detail(
+            '<h1>Stan u Zadru</h1> ID oglasa: 189628 Cijena: 200.000 €',
+            "https://www.opereta.hr/nekretnina/stan/189628-prodaja-stan-zadar",
+        )
+        land = OperetaScraper.parse_detail(
+            '<h1>Građevinsko zemljište</h1> ID oglasa: 189629 Cijena: 100.000 €',
+            "https://www.opereta.hr/nekretnina/zemljiste/189629-prodaja-zemljiste",
+        )
 
-        self.assertFalse(OperetaScraper._looks_like_house(html, "Apartment in Zagreb"))
+        self.assertEqual(apartment.property_type, "apartment")
+        self.assertEqual(land.property_type, "land")
+
+    def test_opereta_collects_categories_and_pagination(self) -> None:
+        pages = {
+            "https://www.opereta.hr/nekretnine": """
+                <html><body>nekretnine
+                <a href='/nekretnine/prodaja/stan'>Stanovi</a>
+                <a href='/nekretnina/kuca/189627-prodaja-kuca'>Kuća</a>
+                </body></html>""" * 20,
+            "https://www.opereta.hr/nekretnine/prodaja/stan": """
+                <html><body><a href='/nekretnina/stan/189628-prodaja-stan'>Stan</a>
+                <a class='pagination-next' href='/nekretnine/prodaja/stan?page=2'>Sljedeća</a>
+                </body></html>""",
+            "https://www.opereta.hr/nekretnine/prodaja/stan?page=2": """
+                <html><body><a href='/nekretnina/stan/189629-prodaja-stan'>Drugi stan</a></body></html>""",
+        }
+
+        class FakeResponse:
+            def __init__(self, url: str) -> None:
+                self.url = url
+                self.text = pages[url]
+                self.status_code = 200
+                self.ok = True
+
+            def raise_for_status(self) -> None:
+                return None
+
+        scraper = OperetaScraper(
+            "https://www.opereta.hr/nekretnine", "https://www.opereta.hr", max_pages=10
+        )
+        scraper.http = SimpleNamespace(get=lambda url, timeout: FakeResponse(url))
+
+        links = scraper._collect_links()
+
+        self.assertEqual(len(links), 3)
+        self.assertIn("https://www.opereta.hr/nekretnina/stan/189629-prodaja-stan", links)
 
     def test_api_filters_local_database(self) -> None:
         app = create_app(Config(database_url=f"sqlite:///{self.directory / 'web.db'}"))
