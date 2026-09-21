@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="hr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nekretnine.hr — kuće na jednom mjestu</title>
+  <meta name="description" content="Lokalna tražilica nekretnina s kartom Hrvatske.">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar navbar-expand bg-white border-bottom sticky-top">
+    <div class="container-fluid px-lg-4">
+      <a class="navbar-brand fw-bold" href="/"><span class="brand-mark">N</span> Nekretnine<span>.hr</span></a>
+      <div class="d-flex align-items-center gap-3">
+        <span id="syncMessage" class="small text-secondary d-none d-md-inline" aria-live="polite">Pretraživanje lokalne baze</span>
+        <button id="refreshButton" class="btn btn-dark btn-sm px-3" type="button">
+          <span class="refresh-icon">↻</span> Osvježi Operetu
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container-fluid px-lg-4 py-4">
+    <div class="row g-4">
+      <aside class="col-12 col-lg-3 col-xl-2">
+        <form id="filters" class="filter-panel">
+          <div class="d-flex align-items-center justify-content-between mb-4">
+            <h1 class="h5 mb-0">Filtri</h1>
+            <button type="reset" class="btn btn-link btn-sm text-decoration-none p-0">Očisti</button>
+          </div>
+          <label class="form-label" for="propertyType">Vrsta nekretnine</label>
+          <select class="form-select mb-4" id="propertyType" name="property_type">
+            <option value="">Sve vrste</option><option value="house">Kuća</option>
+          </select>
+          <fieldset><legend>Cijena (€)</legend><div class="row g-2 mb-4"><div class="col"><input class="form-control" name="price_min" type="number" min="0" placeholder="Od"></div><div class="col"><input class="form-control" name="price_max" type="number" min="0" placeholder="Do"></div></div></fieldset>
+          <fieldset><legend>Stambena površina (m²)</legend><div class="row g-2 mb-4"><div class="col"><input class="form-control" name="living_min" type="number" min="0" placeholder="Od"></div><div class="col"><input class="form-control" name="living_max" type="number" min="0" placeholder="Do"></div></div></fieldset>
+          <fieldset><legend>Površina zemljišta (m²)</legend><div class="row g-2 mb-4"><div class="col"><input class="form-control" name="land_min" type="number" min="0" placeholder="Od"></div><div class="col"><input class="form-control" name="land_max" type="number" min="0" placeholder="Do"></div></div></fieldset>
+          <hr>
+          <label class="form-label mt-2" for="county">Županije</label>
+          <select class="form-select location-select" id="county" name="county" multiple aria-describedby="multiHelp">
+            {% for county in counties %}<option value="{{ county }}">{{ county }}</option>{% endfor %}
+          </select>
+          <label class="form-label mt-3" for="municipality">Općine / gradovi</label>
+          <select class="form-select location-select" id="municipality" name="municipality" multiple>
+            {% for municipality in municipalities %}<option value="{{ municipality }}">{{ municipality }}</option>{% endfor %}
+          </select>
+          <div id="multiHelp" class="form-text">Ctrl/Cmd + klik za višestruki odabir.</div>
+          <button class="btn btn-primary w-100 mt-4" type="submit">Primijeni filtre</button>
+        </form>
+      </aside>
+
+      <section class="col-12 col-lg-9 col-xl-10">
+        <div class="hero-copy d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+          <div><p class="eyebrow mb-1">Pregled ponude</p><h2 class="h3 mb-0">Kuće u Hrvatskoj</h2></div>
+          <p class="mb-1 text-secondary"><strong id="resultCount">0</strong> oglasa</p>
+        </div>
+        <div class="map-shell">
+          <div id="map" aria-label="Karta nekretnina"></div>
+          <div class="map-tip"><strong>Nacrtajte područje</strong><br><span>Koristite alat ◇ na karti za lokalni odabir.</span></div>
+          <button id="showResultsButton" class="btn btn-dark map-results-button" type="button">
+            Prikaži <span id="mapResultCount">0</span> oglasa ↓
+          </button>
+        </div>
+        <section id="resultsSection" class="results-section" aria-labelledby="resultsTitle" tabindex="-1">
+          <div class="d-flex align-items-center justify-content-between mt-4 mb-2">
+            <h3 id="resultsTitle" class="h5 mb-0">Pronađene nekretnine</h3>
+            <button id="backToMapButton" class="btn btn-link btn-sm text-decoration-none" type="button">↑ Natrag na kartu</button>
+          </div>
+          <div id="emptyState" class="empty-state d-none"><div class="empty-icon">⌂</div><h3>Nema oglasa za ovaj odabir</h3><p>Promijenite filtre ili osvježite podatke s Operete.</p></div>
+          <div id="propertyGrid" class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4"></div>
+        </section>
+      </section>
+    </div>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
