@@ -78,15 +78,24 @@ class PropertyExplorer {
   }
 
   render() {
-    const visible = this.properties.filter(property => this.insideSelection(property));
+    const located = this.properties.filter(property => property.latitude != null && property.longitude != null);
+    const missingLocation = this.polygon
+      ? this.properties.filter(property => property.latitude == null || property.longitude == null)
+      : [];
+    const insideArea = located.filter(property => this.insideSelection(property));
+    // A polygon cannot classify listings without coordinates. Keep their cards
+    // accessible, but report them separately instead of pretending they matched.
+    const visible = this.polygon ? [...insideArea, ...missingLocation] : this.properties;
     this.markers.clearLayers();
-    visible.filter(p => p.latitude != null && p.longitude != null).forEach(property => {
+    insideArea.forEach(property => {
       const popup = `<strong>${this.escape(property.title)}</strong><br><span class="marker-price">${this.money(property.price)}</span><br><a href="${this.escape(property.url)}" target="_blank" rel="noopener noreferrer">Otvori izvorni oglas ↗</a>`;
       L.marker([property.latitude, property.longitude]).bindPopup(popup).addTo(this.markers);
     });
     const grid = document.querySelector("#propertyGrid"); grid.replaceChildren(...visible.map(p => this.card(p)));
     document.querySelector("#resultCount").textContent = visible.length.toLocaleString("hr-HR");
     document.querySelector("#mapResultCount").textContent = visible.length.toLocaleString("hr-HR");
+    document.querySelector("#missingLocationCount").textContent = missingLocation.length.toLocaleString("hr-HR");
+    document.querySelector("#missingLocationNotice").classList.toggle("d-none", missingLocation.length === 0);
     document.querySelector("#emptyState").classList.toggle("d-none", visible.length !== 0);
   }
 

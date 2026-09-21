@@ -69,6 +69,10 @@
             <h3 id="resultsTitle" class="h5 mb-0">Pronađene nekretnine</h3>
             <button id="backToMapButton" class="btn btn-link btn-sm text-decoration-none" type="button">↑ Natrag na kartu</button>
           </div>
+          <div id="missingLocationNotice" class="alert alert-warning d-none" role="status">
+            <strong><span id="missingLocationCount">0</span> oglasa nema precizne koordinate.</strong>
+            Ne možemo potvrditi jesu li unutar nacrtanog područja, ali ih prikazujemo ispod da ih ipak možete pregledati.
+          </div>
           <div id="emptyState" class="empty-state d-none"><div class="empty-icon">⌂</div><h3>Nema oglasa za ovaj odabir</h3><p>Promijenite filtre ili osvježite podatke s Operete.</p></div>
           <div id="propertyGrid" class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4"></div>
         </section>

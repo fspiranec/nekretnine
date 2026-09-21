@@ -64,6 +64,7 @@ za Vercel zahtijevao bi zasebnu produkcijsku konfiguraciju i nije dio ove SQLite
 - Leaflet/OpenStreetMap karta, lokalni GeoJSON sloj i označavanje oglasa
 - crtanje poligona te filtriranje markera i kartica unutar nacrtanog područja
 - gumb **Prikaži oglase** na karti vodi do kartica rezultata; marker i svaka kartica vode na izvorni oglas
+- oglasi bez koordinata ostaju dostupni ispod karte uz jasno upozorenje da njihov položaj nije moguće potvrditi poligonom
 - idempotentni upsert po `(portal, portal_id)` i odvojena povijest promjena cijene
 - asinkrono ručno osvježavanje Operete
 

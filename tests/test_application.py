@@ -48,6 +48,13 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(item.price, Decimal("250000"))
         self.assertEqual(item.city, "Zadar")
 
+    def test_opereta_inline_map_coordinates(self) -> None:
+        html = '''<html><head><script type="application/ld+json">{"@type":"Product","name":"Kuća","sku":"OP-43"}</script></head><body><script>const map = {"lat": 45.815, "lng": 15.982};</script></body></html>'''
+        item = OperetaScraper.parse_detail(html, "https://www.opereta.hr/nekretnina/op-43")
+
+        self.assertEqual(item.latitude, 45.815)
+        self.assertEqual(item.longitude, 15.982)
+
     def test_api_filters_local_database(self) -> None:
         app = create_app(Config(database_url=f"sqlite:///{self.directory / 'web.db'}"))
         database = app.extensions["state"].database

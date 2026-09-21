@@ -144,12 +144,47 @@ class OperetaScraper(BaseScraper):
     @staticmethod
     def _coordinates(data: dict[str, Any], soup: BeautifulSoup) -> tuple[float | None, float | None]:
         geo = data.get("geo", {}) if isinstance(data.get("geo"), dict) else {}
-        lat = geo.get("latitude") or soup.select_one("[data-lat]")
-        lng = geo.get("longitude") or soup.select_one("[data-lng]")
+        lat_element = soup.select_one("[data-lat], [data-latitude]")
+        lng_element = soup.select_one("[data-lng], [data-lon], [data-longitude]")
+        lat = geo.get("latitude") or lat_element
+        lng = geo.get("longitude") or lng_element
         try:
-            return float(lat.get("data-lat") if isinstance(lat, Tag) else lat), float(lng.get("data-lng") if isinstance(lng, Tag) else lng)
+            latitude = (
+                lat.get("data-lat") or lat.get("data-latitude")
+                if isinstance(lat, Tag)
+                else lat
+            )
+            longitude = (
+                lng.get("data-lng") or lng.get("data-lon") or lng.get("data-longitude")
+                if isinstance(lng, Tag)
+                else lng
+            )
+            return OperetaScraper._valid_coordinates(latitude, longitude)
         except (TypeError, ValueError):
-            return None, None
+            pass
+
+        # Some detail pages keep map coordinates in an inline script or iframe
+        # instead of schema.org markup. Support the common representations.
+        html = str(soup)
+        coordinate_patterns = (
+            r'["\'](?:latitude|lat)["\']\s*[:=]\s*["\']?(-?\d{1,2}\.\d+)["\']?.{0,160}?["\'](?:longitude|lng|lon)["\']\s*[:=]\s*["\']?(-?\d{1,3}\.\d+)',
+            r'(?:@|[?&](?:q|query)=)(-?\d{1,2}\.\d+)[,%2C\s]+(-?\d{1,3}\.\d+)',
+        )
+        for pattern in coordinate_patterns:
+            match = re.search(pattern, html, re.IGNORECASE | re.DOTALL)
+            if match:
+                try:
+                    return OperetaScraper._valid_coordinates(match.group(1), match.group(2))
+                except ValueError:
+                    continue
+        return None, None
+
+    @staticmethod
+    def _valid_coordinates(latitude: Any, longitude: Any) -> tuple[float, float]:
+        lat, lng = float(latitude), float(longitude)
+        if not (42.0 <= lat <= 47.0 and 13.0 <= lng <= 20.0):
+            raise ValueError("Coordinates are outside Croatia")
+        return lat, lng
 
     @staticmethod
     def _match(text: str, pattern: str) -> str | None:
