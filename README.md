@@ -41,6 +41,20 @@ pokreće sinkronizaciju u pozadini; status je prikazan u zaglavlju. Postavke se 
 promijeniti varijablama `DATABASE_URL`, `SECRET_KEY`, `OPERETA_BASE_URL`,
 `OPERETA_HOUSES_URL`, `SCRAPER_TIMEOUT` i `SCRAPER_MAX_PAGES`.
 
+Zadani Opereta URL koristi hrvatsku rutu
+`https://www.opereta.hr/hr/nekretnine?vrsta=kuce`. Scraper šalje hrvatsku jezičnu
+postavku, automatski pokušava alternativne aktualne rute i, ako se navigacija portala
+promijeni, pokušava pronaći oglase kroz javni sitemap. Varijablu
+`OPERETA_HOUSES_URL` postavite samo ako želite ručno zadati drugu početnu stranicu.
+Scraper dodatno provjerava da je pronađena stranica stvarni oglas i odbacuje uslužne
+stranice poput `property-management` te oglase koji su jasno označeni kao stanovi.
+
+Pri sljedećem osvježavanju servis automatski uklanja stare retke koji nemaju ni cijenu,
+ni stambenu površinu, ni površinu zemljišta, pa ranije spremljena stranica
+`property-management` više neće ostati među rezultatima. Ako ipak želite potpuno čistu
+bazu, zaustavite aplikaciju, izbrišite `data/nekretnine.db`, ponovno pokrenite
+`python app.py` i kliknite **Osvježi Operetu**.
+
 ## Vercel
 
 `app.py` izvozi modulsku Flask instancu `app`, koju Vercel automatski pronalazi.

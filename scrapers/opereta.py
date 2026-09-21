@@ -12,6 +12,7 @@ import re
 from decimal import Decimal, InvalidOperation
 from typing import Any, Iterable
 from urllib.parse import urljoin, urlparse
+from xml.etree import ElementTree
 
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -29,8 +30,17 @@ class OperetaScraper(BaseScraper):
         self.base_url = base_url
         self.timeout = timeout
         self.max_pages = max_pages
+        self._sitemap_links: list[str] = []
         self.http = requests.Session()
-        self.http.headers.update({"User-Agent": "NekretnineHR/1.0 (+local property index)"})
+        self.http.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (compatible; NekretnineHR/1.0; +local-property-index)",
+                # Opereta redirects clients without a language preference to an
+                # English URL that currently returns 404 for the Croatian slug.
+                "Accept-Language": "hr-HR,hr;q=0.9,en;q=0.5",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            }
+        )
 
     def scrape(self) -> list[PropertyDTO]:
         links = self._collect_links()
@@ -40,14 +50,23 @@ class OperetaScraper(BaseScraper):
             try:
                 response = self.http.get(link, timeout=self.timeout)
                 response.raise_for_status()
-                properties.append(self.parse_detail(response.text, response.url))
+                if not self._looks_like_property_detail(response.text):
+                    LOGGER.warning("Skipping non-listing Opereta page %s", response.url)
+                    continue
+                property_dto = self.parse_detail(response.text, response.url)
+                if not self._looks_like_house(response.text, property_dto.title):
+                    LOGGER.info("Skipping non-house Opereta listing %s", response.url)
+                    continue
+                properties.append(property_dto)
             except (requests.RequestException, ValueError) as exc:
                 LOGGER.warning("Skipping Opereta listing %s (%d/%d): %s", link, index, len(links), exc)
         return properties
 
     def _collect_links(self) -> list[str]:
         links: set[str] = set()
-        next_url: str | None = self.listing_url
+        next_url: str | None = self._working_listing_url()
+        if next_url == "sitemap://opereta":
+            return list(self._sitemap_links)
         for _ in range(self.max_pages):
             if not next_url:
                 break
@@ -62,15 +81,144 @@ class OperetaScraper(BaseScraper):
             next_anchor = soup.select_one("a[rel='next'], .next.page-numbers, .pagination-next a")
             candidate = urljoin(response.url, str(next_anchor.get("href"))) if next_anchor else None
             next_url = candidate if candidate and candidate != response.url else None
-        return sorted(links)
+        if links:
+            return sorted(links)
+        sitemap_links = self._links_from_sitemaps()
+        if sitemap_links:
+            return sitemap_links
+        raise requests.RequestException(
+            f"Opereta stranica {next_url or self.listing_url} nije sadržavala poveznice na oglase."
+        )
+
+    def _working_listing_url(self) -> str:
+        """Resolve a live listing page instead of depending on one fragile slug."""
+        base = self.base_url.rstrip("/")
+        candidates = list(
+            dict.fromkeys(
+                (
+                    self.listing_url,
+                    f"{base}/hr/nekretnine?vrsta=kuce",
+                    f"{base}/hr/nekretnine",
+                    f"{base}/nekretnine",
+                    f"{base}/en/properties",
+                    f"{base}/properties",
+                )
+            )
+        )
+        failures: list[str] = []
+        for candidate in candidates:
+            try:
+                response = self.http.get(candidate, timeout=self.timeout)
+                if response.ok and self._looks_like_listing_page(response.text):
+                    LOGGER.info("Using Opereta listing page %s", response.url)
+                    return response.url
+                failures.append(f"{candidate} -> HTTP {response.status_code}")
+            except requests.RequestException as exc:
+                failures.append(f"{candidate} -> {exc}")
+
+        sitemap_links = self._links_from_sitemaps()
+        if sitemap_links:
+            # Detail links from the sitemap can be consumed by _collect_links
+            # through a synthetic in-memory page while preserving one code path.
+            LOGGER.info("Opereta listing page unavailable; using %d sitemap links", len(sitemap_links))
+            return self._cache_sitemap_page(sitemap_links)
+        raise requests.RequestException(
+            "Nije pronađena dostupna Opereta stranica oglasa. " + "; ".join(failures)
+        )
+
+    @staticmethod
+    def _looks_like_listing_page(html: str) -> bool:
+        lowered = html.lower()
+        return len(html) > 500 and any(
+            token in lowered for token in ("nekretnin", "property", "real-estate", "listing")
+        )
+
+    def _links_from_sitemaps(self) -> list[str]:
+        """Use public sitemaps as a last-resort discovery mechanism."""
+        sitemap_urls = [urljoin(self.base_url, "/sitemap.xml")]
+        try:
+            robots = self.http.get(urljoin(self.base_url, "/robots.txt"), timeout=self.timeout)
+            if robots.ok:
+                sitemap_urls.extend(
+                    match.strip() for match in re.findall(r"(?im)^sitemap:\s*(\S+)", robots.text)
+                )
+        except requests.RequestException:
+            pass
+
+        property_links: set[str] = set()
+        visited: set[str] = set()
+        while sitemap_urls and len(visited) < 20:
+            sitemap_url = sitemap_urls.pop(0)
+            if sitemap_url in visited:
+                continue
+            visited.add(sitemap_url)
+            try:
+                response = self.http.get(sitemap_url, timeout=self.timeout)
+                response.raise_for_status()
+                root = ElementTree.fromstring(response.content)
+            except (requests.RequestException, ElementTree.ParseError):
+                continue
+            locations = [node.text.strip() for node in root.iter() if node.tag.endswith("loc") and node.text]
+            for location in locations:
+                if location.lower().endswith(".xml"):
+                    sitemap_urls.append(location)
+                elif self._is_property_url(location):
+                    property_links.add(location)
+        return sorted(property_links)
+
+    @staticmethod
+    def _is_property_url(url: str) -> bool:
+        lowered = url.lower()
+        path_parts = [part for part in urlparse(lowered).path.split("/") if part]
+        excluded_segments = {
+            "property-management", "upravljanje-nekretninama", "property-valuation",
+            "procjena-nekretnina", "services", "usluge", "careers", "karijere",
+        }
+        return not excluded_segments.intersection(path_parts) and len(path_parts) >= 2 and any(
+            part in lowered
+            for part in ("/nekretnina/", "/nekretnine/", "/property/", "/properties/")
+        )
+
+    def _cache_sitemap_page(self, links: list[str]) -> str:
+        """Expose discovered links through a requests-compatible data URL is impossible.
+
+        Store them for the collector and return a sentinel handled before HTTP.
+        """
+        self._sitemap_links = links
+        return "sitemap://opereta"
 
     def _is_property_link(self, url: str, anchor: Tag) -> bool:
         if urlparse(url).netloc != urlparse(self.base_url).netloc:
             return False
-        haystack = f"{url} {' '.join(anchor.get('class', []))}".lower()
-        return any(token in haystack for token in ("nekretnina", "property", "oglas")) and not any(
-            token in haystack for token in ("page=", "/kategorija/", "vrsta=")
+        return self._is_property_url(url) and not any(
+            token in url.lower() for token in ("page=", "/kategorija/", "vrsta=")
         )
+
+    @classmethod
+    def _looks_like_property_detail(cls, html: str) -> bool:
+        """Reject service and navigation pages before they can enter the database."""
+        soup = BeautifulSoup(html, "html.parser")
+        data = cls._json_ld(soup)
+        if any(data.get(key) not in (None, "", {}) for key in ("offers", "sku", "productID")):
+            return True
+        text = soup.get_text(" ", strip=True)
+        has_identifier = bool(re.search(r"(?:šifra|id)(?:\s+oglasa)?\s*[:#]", text, re.IGNORECASE))
+        has_property_facts = bool(
+            re.search(r"(?:stambena površina|površina kuće|living area|land area|\bm²\b)", text, re.IGNORECASE)
+        )
+        has_price = "€" in text or bool(re.search(r"\bEUR\b", text, re.IGNORECASE))
+        return has_identifier and (has_property_facts or has_price)
+
+    @staticmethod
+    def _looks_like_house(html: str, title: str) -> bool:
+        """Keep the houses-only scope while tolerating listings with generic titles."""
+        soup = BeautifulSoup(html, "html.parser")
+        context = " ".join(
+            [title, *(element.get_text(" ", strip=True) for element in soup.select(".breadcrumb, .breadcrumbs, [class*='property-type']"))]
+        ).lower()
+        house = bool(re.search(r"\b(kuć[aeu]?|kuca|house|villa|vila)\b", context, re.IGNORECASE))
+        apartment = bool(re.search(r"\b(stan(?:ovi|a|u)?|apartment|flat)\b", context, re.IGNORECASE))
+        return house or not apartment
 
     @classmethod
     def parse_detail(cls, html: str, url: str) -> PropertyDTO:

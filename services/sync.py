@@ -23,6 +23,7 @@ class SyncResult:
     updated: int = 0
     price_changes: int = 0
     skipped: int = 0
+    invalid_removed: int = 0
 
 
 class SyncService:
@@ -56,6 +57,25 @@ class SyncService:
             existing.last_seen = datetime.now(timezone.utc)
             result.updated += 1
         self.session.flush()
+        portals = {item.portal for item in items}
+        if portals:
+            invalid_records = self.session.scalars(
+                select(Property).where(
+                    Property.portal.in_(portals),
+                    Property.price.is_(None),
+                    Property.living_area.is_(None),
+                    Property.land_area.is_(None),
+                )
+            )
+            for invalid_record in invalid_records:
+                LOGGER.warning(
+                    "Removing non-listing record %s from portal %s",
+                    invalid_record.url,
+                    invalid_record.portal,
+                )
+                self.session.delete(invalid_record)
+                result.invalid_removed += 1
+            self.session.flush()
         LOGGER.info("Sync complete: %s", result)
         return result
 

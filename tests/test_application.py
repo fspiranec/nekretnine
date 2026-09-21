@@ -41,6 +41,23 @@ class ApplicationTests(unittest.TestCase):
             self.assertEqual(session.query(Property).count(), 1)
             self.assertEqual(session.query(PriceHistory).count(), 1)
 
+    def test_sync_removes_records_without_any_property_facts(self) -> None:
+        database = Database(f"sqlite:///{self.directory / 'invalid.db'}")
+        database.create_all()
+        invalid = PropertyDTO(
+            portal="opereta", portal_id="property-management",
+            url="https://www.opereta.hr/en/property-management",
+            title="Property Management - Opereta Real Estate", property_type="house",
+        )
+        valid = PropertyDTO(
+            portal="opereta", portal_id="house-1", url="https://example.test/house-1",
+            title="Kuća", property_type="house", living_area=Decimal("120"),
+        )
+        with database.session() as session:
+            result = SyncService(session).sync([invalid, valid])
+            self.assertEqual(result.invalid_removed, 1)
+            self.assertEqual(session.query(Property).count(), 1)
+
     def test_opereta_json_ld_parser(self) -> None:
         html = '''<html><head><script type="application/ld+json">{"@type":"Product","name":"Kuća uz more","sku":"OP-42","image":["/house.jpg"],"offers":{"price":"250000"},"address":{"addressLocality":"Zadar"},"geo":{"latitude":44.1,"longitude":15.2}}</script></head><body>Stambena površina: 120 m² Površina zemljišta: 400 m²</body></html>'''
         item = OperetaScraper.parse_detail(html, "https://www.opereta.hr/nekretnina/op-42")
@@ -54,6 +71,25 @@ class ApplicationTests(unittest.TestCase):
 
         self.assertEqual(item.latitude, 45.815)
         self.assertEqual(item.longitude, 15.982)
+
+    def test_opereta_recognizes_current_croatian_property_urls(self) -> None:
+        self.assertTrue(
+            OperetaScraper._is_property_url(
+                "https://www.opereta.hr/hr/nekretnine/kuca-s-pogledom"
+            )
+        )
+
+    def test_opereta_rejects_property_management_page(self) -> None:
+        url = "https://www.opereta.hr/en/property-management"
+        html = "<html><body><h1>Property Management - Opereta Real Estate</h1></body></html>"
+
+        self.assertFalse(OperetaScraper._is_property_url(url))
+        self.assertFalse(OperetaScraper._looks_like_property_detail(html))
+
+    def test_opereta_rejects_apartment_listing_for_house_sync(self) -> None:
+        html = "<html><body><nav class='breadcrumb'>Properties / Apartments</nav></body></html>"
+
+        self.assertFalse(OperetaScraper._looks_like_house(html, "Apartment in Zagreb"))
 
     def test_api_filters_local_database(self) -> None:
         app = create_app(Config(database_url=f"sqlite:///{self.directory / 'web.db'}"))
