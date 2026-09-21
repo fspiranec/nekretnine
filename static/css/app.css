@@ -16,6 +16,9 @@ legend { float:none; margin-bottom:.5rem; }
 #map { height:500px; width:100%; }
 .map-tip { background:rgba(255,255,255,.94); border-radius:10px; bottom:18px; box-shadow:0 4px 18px #183d2c22; font-size:.76rem; left:18px; padding:10px 14px; position:absolute; z-index:500; }
 .map-tip span { color:#68756e; }
+.map-results-button { bottom:18px; position:absolute; right:18px; z-index:500; }
+.results-section { scroll-margin-top:88px; }
+.results-section:focus { outline:none; }
 .property-card { border:1px solid var(--line); border-radius:15px; height:100%; overflow:hidden; transition:.2s ease; }
 .property-card:hover { box-shadow:0 12px 28px rgba(23,37,31,.10); transform:translateY(-2px); }
 .property-image { aspect-ratio:16/10; background:linear-gradient(135deg,#e0ebe5,#c7d9cf); object-fit:cover; width:100%; }
@@ -25,4 +28,4 @@ legend { float:none; margin-bottom:.5rem; }
 .empty-state p { color:#718078; }.empty-icon { color:var(--green); font-size:3rem; }
 .leaflet-popup-content { margin:12px 15px; }.marker-price { font-weight:800; }
 @media(max-width:991.98px){.filter-panel{position:static}#map{height:430px}}
-@media(max-width:575.98px){#map{height:380px}.map-tip{display:none}.navbar-brand{font-size:1rem}}
+@media(max-width:575.98px){#map{height:380px}.map-tip{display:none}.map-results-button{bottom:12px;right:12px}.navbar-brand{font-size:1rem}}

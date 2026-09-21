@@ -60,9 +60,18 @@
         <div class="map-shell">
           <div id="map" aria-label="Karta nekretnina"></div>
           <div class="map-tip"><strong>Nacrtajte područje</strong><br><span>Koristite alat ◇ na karti za lokalni odabir.</span></div>
+          <button id="showResultsButton" class="btn btn-dark map-results-button" type="button">
+            Prikaži <span id="mapResultCount">0</span> oglasa ↓
+          </button>
         </div>
-        <div id="emptyState" class="empty-state d-none"><div class="empty-icon">⌂</div><h3>Nema oglasa za ovaj odabir</h3><p>Promijenite filtre ili osvježite podatke s Operete.</p></div>
-        <div id="propertyGrid" class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mt-1"></div>
+        <section id="resultsSection" class="results-section" aria-labelledby="resultsTitle" tabindex="-1">
+          <div class="d-flex align-items-center justify-content-between mt-4 mb-2">
+            <h3 id="resultsTitle" class="h5 mb-0">Pronađene nekretnine</h3>
+            <button id="backToMapButton" class="btn btn-link btn-sm text-decoration-none" type="button">↑ Natrag na kartu</button>
+          </div>
+          <div id="emptyState" class="empty-state d-none"><div class="empty-icon">⌂</div><h3>Nema oglasa za ovaj odabir</h3><p>Promijenite filtre ili osvježite podatke s Operete.</p></div>
+          <div id="propertyGrid" class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4"></div>
+        </section>
       </section>
     </div>
   </main>

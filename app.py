@@ -73,6 +73,13 @@ def create_app(config: Config | None = None) -> Flask:
     def refresh_opereta():
         if state.sync_status.get("running"):
             return jsonify(state.sync_status), 409
+        # A serverless invocation may stop as soon as the response is returned,
+        # so Vercel must finish the refresh inside the current request.
+        if settings.is_serverless:
+            state.refresh_opereta()
+            failed = str(state.sync_status.get("message", "")).startswith("Sinkronizacija nije")
+            status_code = 502 if failed else 200
+            return jsonify(state.sync_status), status_code
         Thread(target=state.refresh_opereta, name="opereta-sync", daemon=True).start()
         return jsonify({"running": True, "message": "Sinkronizacija je pokrenuta."}), 202
 
@@ -83,6 +90,11 @@ def create_app(config: Config | None = None) -> Flask:
     return app
 
 
+# Vercel and conventional WSGI servers import this module-level application.
+# Keeping the factory above still allows isolated configurations in tests.
+app = create_app()
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    create_app().run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="127.0.0.1", port=5000, debug=False)

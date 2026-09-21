@@ -8,18 +8,52 @@ Lokalna, responzivna tražilica hrvatskih nekretnina. Prva integracija prikuplja
 - Internet veza za ručno osvježavanje Operete i prikaz OpenStreetMap podloge
 - Windows, macOS ili Linux; Docker i Node.js nisu potrebni
 
-## Instalacija i pokretanje
+## Lokalna instalacija i pokretanje
 
-```bash
-python -m venv .venv
-# Windows PowerShell: .venv\Scripts\Activate.ps1
-# Windows cmd.exe:   .venv\Scripts\activate.bat
-# macOS/Linux:       source .venv/bin/activate
+Najprije u terminalu otvorite mapu projekta. Na Windowsu to, primjerice, izgleda ovako:
+
+```powershell
+cd C:\Users\VASE_IME\Downloads\nekretnine
+py -3.11 -m venv .venv
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python app.py
 ```
 
-Otvorite <http://127.0.0.1:5000>. Baza se automatski stvara u `data/nekretnine.db`. Klik **Osvježi Operetu** pokreće sinkronizaciju u pozadini; status je prikazan u zaglavlju. Postavke se mogu promijeniti varijablama `DATABASE_URL`, `SECRET_KEY`, `OPERETA_BASE_URL`, `OPERETA_HOUSES_URL`, `SCRAPER_TIMEOUT` i `SCRAPER_MAX_PAGES`.
+Ako PowerShell blokira aktivaciju, jednom u tom prozoru pokrenite
+`Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`, a zatim ponovno
+`.venv\Scripts\Activate.ps1`. U klasičnom Command Promptu koristite
+`.venv\Scripts\activate.bat` umjesto PowerShell naredbe.
+
+Na macOS-u ili Linuxu:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
+
+Kada terminal ispiše `Running on http://127.0.0.1:5000`, ostavite ga otvorenim i u
+pregledniku otvorite <http://127.0.0.1:5000>. Za zaustavljanje aplikacije pritisnite
+`Ctrl+C`. Baza se automatski stvara u `data/nekretnine.db`. Klik **Osvježi Operetu**
+pokreće sinkronizaciju u pozadini; status je prikazan u zaglavlju. Postavke se mogu
+promijeniti varijablama `DATABASE_URL`, `SECRET_KEY`, `OPERETA_BASE_URL`,
+`OPERETA_HOUSES_URL`, `SCRAPER_TIMEOUT` i `SCRAPER_MAX_PAGES`.
+
+## Vercel
+
+`app.py` izvozi modulsku Flask instancu `app`, koju Vercel automatski pronalazi.
+Nije potreban Build Command; Framework Preset može ostati **Other**, a Root Directory
+mora biti korijen ovog repozitorija. `vercel.json` povećava dopušteno trajanje Python
+funkcije kako bi ručno osvježavanje imalo više vremena.
+
+Vercelov filesystem nije trajna baza podataka. Aplikacija zato na Vercelu koristi
+zapisivi `/tmp/nekretnine.db`, ali njegov sadržaj može nestati između serverless
+invokacija ili deploymenta. Vercel deployment je prikladan za demonstraciju sučelja,
+ne za trajno Opereta spremište. Za stvarnu trajnu SQLite bazu pokrenite aplikaciju
+lokalno ili na klasičnom Python hostingu s trajnim diskom. Vanjski trajni SQL servis
+za Vercel zahtijevao bi zasebnu produkcijsku konfiguraciju i nije dio ove SQLite faze.
 
 > Portal može promijeniti URL ili HTML. URL je zato konfigurabilan, parser preferira stabilnije schema.org JSON-LD podatke, a pojedinačni neispravan oglas ne prekida cijelo osvježavanje. Prije produkcijske uporabe provjerite uvjete korištenja i robots.txt izvornog portala.
 
@@ -29,6 +63,7 @@ Otvorite <http://127.0.0.1:5000>. Baza se automatski stvara u `data/nekretnine.d
 - višestruki odabir županija i općina/gradova
 - Leaflet/OpenStreetMap karta, lokalni GeoJSON sloj i označavanje oglasa
 - crtanje poligona te filtriranje markera i kartica unutar nacrtanog područja
+- gumb **Prikaži oglase** na karti vodi do kartica rezultata; marker i svaka kartica vode na izvorni oglas
 - idempotentni upsert po `(portal, portal_id)` i odvojena povijest promjena cijene
 - asinkrono ručno osvježavanje Operete
 

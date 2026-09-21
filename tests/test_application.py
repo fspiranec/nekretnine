@@ -62,6 +62,12 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(payload["count"], 1)
         self.assertEqual(client.get("/api/properties?price_max=50000").get_json()["count"], 0)
 
+    def test_module_exports_vercel_flask_application(self) -> None:
+        from app import app
+
+        self.assertEqual(app.name, "app")
+        self.assertIn("state", app.extensions)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -33,6 +33,10 @@ class PropertyExplorer {
     this.form.addEventListener("submit", (event) => { event.preventDefault(); this.loadProperties(); });
     this.form.addEventListener("reset", () => setTimeout(() => this.loadProperties(), 0));
     document.querySelector("#refreshButton").addEventListener("click", () => this.refresh());
+    document.querySelector("#showResultsButton").addEventListener("click", () => this.scrollToResults());
+    document.querySelector("#backToMapButton").addEventListener("click", () => {
+      document.querySelector("#map").scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   }
 
   async loadBoundaries() {
@@ -77,11 +81,19 @@ class PropertyExplorer {
     const visible = this.properties.filter(property => this.insideSelection(property));
     this.markers.clearLayers();
     visible.filter(p => p.latitude != null && p.longitude != null).forEach(property => {
-      L.marker([property.latitude, property.longitude]).bindPopup(`<strong>${this.escape(property.title)}</strong><br><span class="marker-price">${this.money(property.price)}</span>`).addTo(this.markers);
+      const popup = `<strong>${this.escape(property.title)}</strong><br><span class="marker-price">${this.money(property.price)}</span><br><a href="${this.escape(property.url)}" target="_blank" rel="noopener noreferrer">Otvori izvorni oglas ↗</a>`;
+      L.marker([property.latitude, property.longitude]).bindPopup(popup).addTo(this.markers);
     });
     const grid = document.querySelector("#propertyGrid"); grid.replaceChildren(...visible.map(p => this.card(p)));
     document.querySelector("#resultCount").textContent = visible.length.toLocaleString("hr-HR");
+    document.querySelector("#mapResultCount").textContent = visible.length.toLocaleString("hr-HR");
     document.querySelector("#emptyState").classList.toggle("d-none", visible.length !== 0);
+  }
+
+  scrollToResults() {
+    const section = document.querySelector("#resultsSection");
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+    section.focus({ preventScroll: true });
   }
 
   card(property) {
