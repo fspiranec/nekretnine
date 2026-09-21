@@ -1,0 +1,5 @@
+Flask==3.1.2
+SQLAlchemy==2.0.43
+requests==2.32.5
+beautifulsoup4==4.13.5
+

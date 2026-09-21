@@ -1,0 +1,28 @@
+:root { --ink:#17251f; --green:#19734b; --pale:#eef5f0; --line:#dfe7e2; }
+body { background:#f7f9f8; color:var(--ink); font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; }
+.navbar { min-height:68px; }
+.navbar-brand { color:var(--ink); letter-spacing:-.04em; }
+.navbar-brand span:last-child { color:var(--green); }
+.brand-mark { align-items:center; background:var(--green); border-radius:10px; color:#fff!important; display:inline-flex; height:34px; justify-content:center; margin-right:6px; width:34px; }
+.filter-panel { background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px; position:sticky; top:92px; }
+.form-label, legend { font-size:.79rem; font-weight:700; letter-spacing:.03em; }
+legend { float:none; margin-bottom:.5rem; }
+.form-control,.form-select { border-color:#d7e0da; font-size:.9rem; }
+.location-select { min-height:112px; }
+.btn-primary { background:var(--green); border-color:var(--green); }
+.btn-primary:hover { background:#125c3b; border-color:#125c3b; }
+.eyebrow { color:var(--green); font-size:.72rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+.map-shell { border:1px solid var(--line); border-radius:18px; box-shadow:0 12px 30px rgba(21,57,39,.08); overflow:hidden; position:relative; }
+#map { height:500px; width:100%; }
+.map-tip { background:rgba(255,255,255,.94); border-radius:10px; bottom:18px; box-shadow:0 4px 18px #183d2c22; font-size:.76rem; left:18px; padding:10px 14px; position:absolute; z-index:500; }
+.map-tip span { color:#68756e; }
+.property-card { border:1px solid var(--line); border-radius:15px; height:100%; overflow:hidden; transition:.2s ease; }
+.property-card:hover { box-shadow:0 12px 28px rgba(23,37,31,.10); transform:translateY(-2px); }
+.property-image { aspect-ratio:16/10; background:linear-gradient(135deg,#e0ebe5,#c7d9cf); object-fit:cover; width:100%; }
+.price { color:var(--green); font-size:1.25rem; font-weight:800; }
+.facts { color:#65726b; display:flex; flex-wrap:wrap; font-size:.82rem; gap:10px; }
+.empty-state { padding:72px 15px; text-align:center; }
+.empty-state p { color:#718078; }.empty-icon { color:var(--green); font-size:3rem; }
+.leaflet-popup-content { margin:12px 15px; }.marker-price { font-weight:800; }
+@media(max-width:991.98px){.filter-panel{position:static}#map{height:430px}}
+@media(max-width:575.98px){#map{height:380px}.map-tip{display:none}.navbar-brand{font-size:1rem}}
